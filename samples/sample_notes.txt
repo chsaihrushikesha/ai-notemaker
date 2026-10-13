@@ -1,0 +1,13 @@
+Introduction to Machine Learning
+
+Machine learning is a branch of artificial intelligence in which systems learn patterns from data instead of being explicitly programmed. A model is trained on examples and then used to make predictions on new, unseen data.
+
+Supervised learning uses labelled data. Each training example has an input and a correct output, and the algorithm learns a mapping between them. Classification predicts discrete categories such as spam or not spam, while regression predicts continuous values such as house prices.
+
+Unsupervised learning works with unlabelled data. Clustering groups similar items together, and dimensionality reduction compresses data into fewer features while preserving structure. Principal component analysis is a common dimensionality reduction technique.
+
+Overfitting happens when a model memorises the training data and performs poorly on new data. Techniques to reduce overfitting include regularisation, cross-validation, early stopping and collecting more training data. Underfitting is the opposite problem, where the model is too simple to capture the underlying pattern.
+
+Model performance is evaluated on a held-out test set. Accuracy measures the fraction of correct predictions, precision measures how many predicted positives are truly positive, and recall measures how many actual positives were found. The F1 score is the harmonic mean of precision and recall.
+
+Neural networks consist of layers of connected neurons. Each neuron computes a weighted sum of its inputs and applies an activation function such as ReLU. Training uses gradient descent and backpropagation to adjust the weights so that a loss function is minimised.
