@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI NoteMaker - Lecture Summarizer & Revision Assistant</title>
+  <meta name="description" content="Turn long lecture notes into summaries, key concept flashcards, revision questions, and chat with your notes using Nexus AI and RAG.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=2.8">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="glow-orb orb-top-left"></div>
+  <div class="glow-orb orb-bottom-right"></div>
+  <div class="glow-grid"></div>
+
+  <!-- Header / Navbar -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">AI NoteMaker <span class="badge-pro">PRO</span></div>
+          <div class="brand-tagline">Autonomous Lecture Summarizer & Study Copilot</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="aboutBtn" class="btn btn-glass" title="About the Project & Team">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <span>About Project</span>
+        </button>
+        <a href="/api/docs" target="_blank" class="btn btn-ghost" title="Interactive Swagger Docs">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          <span>API Docs</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <main class="app-main">
+    <div class="app-layout initial-centered" id="appLayout">
+      
+      <!-- LEFT COLUMN: Ingestion Deck -->
+      <section class="panel panel-input" id="inputPanel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <h2>Ingestion Deck</h2>
+          </div>
+          <span class="panel-subtitle">Upload notes or paste text to generate your pack</span>
+        </div>
+
+        <!-- Input Mode Switcher -->
+        <div class="mode-tabs">
+          <button class="mode-tab active" id="tabUploadBtn" data-mode="upload">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Upload Document
+          </button>
+          <button class="mode-tab" id="tabPasteBtn" data-mode="paste">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Paste Notes
+          </button>
+        </div>
+
+        <!-- Mode 1: File Upload Dropzone -->
+        <div class="mode-content" id="modeUpload">
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md" hidden>
+            <div class="dropzone-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div class="dropzone-title">Drop your lecture notes here</div>
+            <div class="dropzone-desc">Drag & drop or <span class="highlight">browse</span> from your computer</div>
+            <div class="dropzone-chips">
+              <span class="chip">PDF</span>
+              <span class="chip">DOCX</span>
+              <span class="chip">TXT</span>
+              <span class="chip">Markdown</span>
+            </div>
+          </div>
+
+          <!-- Selected File Card -->
+          <div class="file-card hidden" id="fileCard">
+            <div class="file-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+            <div class="file-info">
+              <div class="file-name" id="fileName">lecture_notes.pdf</div>
+              <div class="file-meta" id="fileMeta">245 KB • Ready to analyze</div>
+            </div>
+            <button class="file-remove" id="fileRemoveBtn" title="Remove file">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode 2: Paste Notes Textarea -->
+        <div class="mode-content hidden" id="modePaste">
+          <div class="textarea-wrapper">
+            <textarea id="pasteInput" placeholder="Paste your lecture notes, transcript, or study material here (at least 20 words)..." rows="9"></textarea>
+            <div class="textarea-footer">
+              <span id="pasteStats">0 words • 0 chars</span>
+              <button id="clearPasteBtn" class="btn-text">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Length Selector -->
+        <div class="section-group">
+          <label class="group-label">Summary Depth</label>
+          <div class="length-selector">
+            <label class="length-card">
+              <input type="radio" name="summaryLength" value="short">
+              <div class="length-card-inner">
+                <div class="length-title">Short</div>
+                <div class="length-desc">3–4 high-impact bullets</div>
+              </div>
+            </label>
+            <label class="length-card">
+              <input type="radio" name="summaryLength" value="medium" checked>
+              <div class="length-card-inner">
+                <div class="length-title">Medium</div>
+                <div class="length-desc">6–8 balanced revision points</div>
+              </div>
+            </label>
+            <label class="length-card">
+              <input type="radio" name="summaryLength" value="detailed">
+              <div class="length-card-inner">
+                <div class="length-title">Detailed</div>
+                <div class="length-desc">In-depth structured breakdown</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button id="analyzeBtn" class="btn btn-primary btn-submit">
+          <span class="btn-sparkle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </span>
+          <span id="btnText">Analyse & Generate Study Pack</span>
+        </button>
+
+        <!-- Dynamic Stepper / Loading Indicator -->
+        <div class="stepper-card hidden" id="stepperCard">
+          <div class="stepper-header">
+            <div class="spinner"></div>
+            <div class="stepper-title">Nexus AI Agent Pipeline Active</div>
+          </div>
+          <div class="steps-list">
+            <div class="step-item" id="step1">
+              <span class="step-dot"></span>
+              <span class="step-label">Ingesting & parsing document</span>
+            </div>
+            <div class="step-item" id="step2">
+              <span class="step-dot"></span>
+              <span class="step-label">Summarizer Agent processing</span>
+            </div>
+            <div class="step-item" id="step3">
+              <span class="step-dot"></span>
+              <span class="step-label">Extracting key concepts & definitions</span>
+            </div>
+            <div class="step-item" id="step4">
+              <span class="step-dot"></span>
+              <span class="step-label">Formulating revision Q&A</span>
+            </div>
+            <div class="step-item" id="step5">
+              <span class="step-dot"></span>
+              <span class="step-label">Building semantic search index</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: Interactive Study Hub -->
+      <section class="panel panel-output" id="outputPanel">
+        
+        <!-- Empty State (Before analysis) -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-glow"></div>
+          <div class="empty-illustration">
+            <div class="icon-ring">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                <line x1="9" y1="7" x2="15" y2="7"/>
+                <line x1="9" y1="11" x2="13" y2="11"/>
+              </svg>
+            </div>
+          </div>
+          <h3>Your Study Pack Will Appear Here</h3>
+          <p>Upload lecture notes (PDF, Word, Text) or paste your content on the left to extract instant revision material.</p>
+          
+          <div class="features-preview">
+            <div class="feature-card">
+              <div class="feature-icon">📑</div>
+              <div class="feature-info">
+                <h4>Smart Summaries</h4>
+                <p>Configurable length tailored for exam prep.</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">💡</div>
+              <div class="feature-info">
+                <h4>Key Concepts</h4>
+                <p>Term & definition flashcards extracted automatically.</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">🎯</div>
+              <div class="feature-info">
+                <h4>Revision Quiz</h4>
+                <p>Exam-style questions with click-to-reveal answers.</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">💬</div>
+              <div class="feature-info">
+                <h4>RAG Copilot</h4>
+                <p>Ask anything grounded strictly in your notes.</p>
+              </div>
+            </div>
+          </div>
+
+          <button id="emptySampleBtn" class="btn btn-glass btn-large">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>Try with Sample Machine Learning Notes</span>
+          </button>
+        </div>
+
+        <!-- Active Study Pack Dashboard -->
+        <div class="study-hub hidden" id="studyHub">
+          
+          <!-- Hub Header & Metrics -->
+          <div class="hub-header">
+            <div class="hub-title-group">
+              <div class="hub-metrics">
+                <span class="metric-pill" id="metricWords"><strong>0</strong> words</span>
+                <span class="metric-pill" id="metricConcepts"><strong>0</strong> concepts</span>
+                <span class="metric-pill" id="metricQuestions"><strong>0</strong> revision cards</span>
+                <span class="metric-pill" id="metricMode">Nexus AI</span>
+              </div>
+            </div>
+            <div class="hub-actions">
+              <button class="btn btn-glass btn-sm" id="resetDeckBtn" title="Ingest another document">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                <span>Upload New Notes</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Navigation Tabs -->
+          <div class="hub-tabs">
+            <button class="hub-tab active" data-tab="summary">
+              <span class="tab-icon">📑</span>
+              <span>Summary</span>
+            </button>
+            <button class="hub-tab" data-tab="concepts">
+              <span class="tab-icon">💡</span>
+              <span>Key Concepts</span>
+              <span class="tab-count" id="conceptsCountBadge">0</span>
+            </button>
+            <button class="hub-tab" data-tab="revision">
+              <span class="tab-icon">🎯</span>
+              <span>Revision Q&A</span>
+              <span class="tab-count" id="revisionCountBadge">0</span>
+            </button>
+            <button class="hub-tab" data-tab="chat">
+              <span class="tab-icon">💬</span>
+              <span>Ask Your Notes (RAG)</span>
+            </button>
+            <button class="hub-tab" data-tab="exam">
+              <span class="tab-icon">🏆</span>
+              <span>Exam Corner</span>
+              <span class="tab-count" id="examCornerBadge">0%</span>
+            </button>
+          </div>
+
+          <!-- TAB 1: SUMMARY -->
+          <div class="tab-pane active" id="paneSummary">
+            <div class="summary-wrapper">
+              <div class="pane-action-bar">
+                <span class="pane-tag">Executive Revision Notes</span>
+                <button class="btn-text" id="copySummaryBtn">Copy Summary</button>
+              </div>
+              <div class="summary-content" id="summaryContent">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: KEY CONCEPTS -->
+          <div class="tab-pane" id="paneConcepts">
+            <div class="pane-action-bar">
+              <div class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="conceptSearch" placeholder="Search key concepts...">
+              </div>
+              <span class="pane-tag" id="conceptCounter">Showing 0 concepts</span>
+            </div>
+            <div class="concepts-grid" id="conceptsGrid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- TAB 3: REVISION QUESTIONS -->
+          <div class="tab-pane" id="paneRevision">
+            <div class="pane-action-bar">
+              <div class="revision-progress">
+                <span>Mastery Progress:</span>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="masteryFill" style="width: 0%"></div>
+                </div>
+                <span class="progress-text" id="masteryText">0 / 0 Mastered</span>
+              </div>
+              <button class="btn-text" id="revealAllBtn">Reveal All Answers</button>
+            </div>
+            <div class="revision-list" id="revisionList">
+              <!-- Rendered dynamically -->
+            </div>
+            <div class="ask-more-wrapper">
+              <button id="askMoreRevisionBtn" class="btn btn-ask-more">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                <span id="askMoreBtnText">Ask More (Generate 5 More Questions)</span>
+                <span class="spinner-sm hidden" id="askMoreSpinner"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 4: CHAT WITH NOTES (RAG) -->
+          <div class="tab-pane" id="paneChat">
+            <div class="chat-container">
+              <!-- Message History -->
+              <div class="chat-messages" id="chatMessages">
+                <div class="chat-message assistant">
+                  <div class="msg-avatar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                    </svg>
+                  </div>
+                  <div class="msg-body">
+                    <div class="msg-author">Study Copilot</div>
+                    <div class="msg-text">Hello! I've indexed your notes. Ask me any question, definition, or clarification and I will retrieve the exact passages to answer.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dynamic Content-Based Prompt Suggestions -->
+              <div class="quick-prompts hidden" id="quickPrompts">
+                <!-- Populated dynamically based on uploaded lecture note concepts -->
+              </div>
+
+              <!-- Chat Input Box -->
+              <div class="chat-input-row">
+                <input type="text" id="chatInput" placeholder="Ask a question about your notes..." autocomplete="off">
+                <button id="chatSendBtn" class="btn btn-primary btn-send">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: EXAM CORNER -->
+          <div class="tab-pane" id="paneExam">
+            <div class="exam-corner-wrapper">
+              <div class="exam-header-card">
+                <div class="exam-header-info">
+                  <div class="exam-pill-tag">🎯 High-Yield Exam Checklist</div>
+                  <h3 class="exam-title" id="examTopicHeader">Exam Readiness Checklist</h3>
+                  <p class="exam-subtitle">High-yield tasks, core definition recalls, and essential targets extracted from your notes. Check items off as you revise—progress is saved automatically.</p>
+                </div>
+                <div class="exam-progress-box">
+                  <div class="exam-progress-numbers">
+                    <span class="exam-pct" id="examPct">0%</span>
+                    <span class="exam-fraction" id="examFraction">0 of 0 Completed</span>
+                  </div>
+                  <div class="exam-bar-track">
+                    <div class="exam-bar-fill" id="examBarFill" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="exam-card-body">
+                <div class="exam-toolbar">
+                  <span class="exam-section-title">Essential Milestones</span>
+                  <button class="btn-reset-exam" id="resetExamBtn" title="Reset checklist">Reset Checklist</button>
+                </div>
+                <div class="exam-list" id="examList">
+                  <!-- Rendered dynamically -->
+                </div>
+                <div class="exam-add-row">
+                  <input type="text" id="customExamInput" placeholder="Add custom revision task (e.g. Solve 2024 past paper question on this...)" autocomplete="off">
+                  <button id="addCustomExamBtn" class="btn btn-primary btn-sm">Add Item</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- About Project Modal -->
+  <div class="modal-overlay hidden" id="aboutModal">
+    <div class="modal-card modal-animated">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="badge-citation">Capstone Project</span>
+        </div>
+        <button class="modal-close" id="aboutCloseBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="about-icon-glow">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <h3 class="about-title">AI NoteMaker Pro</h3>
+        <p class="about-tagline">AI Lecture Notes Summarizer & Revision Assistant</p>
+        <div class="about-divider"></div>
+        <p class="about-credit-label">This project was done by</p>
+        <div class="team-chips">
+          <div class="team-chip">
+            <span class="chip-avatar">S</span>
+            <span class="chip-name">Sanjay SK</span>
+          </div>
+          <div class="team-chip">
+            <span class="chip-avatar">P</span>
+            <span class="chip-name">Pradyun K</span>
+          </div>
+          <div class="team-chip">
+            <span class="chip-avatar">S</span>
+            <span class="chip-name">Sai Hrushikesh</span>
+          </div>
+        </div>
+        <div class="about-action-wrapper">
+          <button class="btn btn-primary btn-large btn-ppt" id="openPptBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Open Architecture Presentation (PDF)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Concept Detail Modal (3 Bullet Points with Animation) -->
+  <div class="modal-overlay hidden" id="conceptDetailsModal">
+    <div class="modal-card modal-animated concept-modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="badge-citation" id="conceptModalBadge">Key Concept Breakdown</span>
+        </div>
+        <button class="modal-close" id="conceptModalCloseBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="concept-modal-header">
+          <div class="concept-modal-icon">💡</div>
+          <div>
+            <h3 class="concept-modal-term" id="conceptModalTerm">Communicable diseases</h3>
+            <p class="concept-modal-def" id="conceptModalDef">Diseases caused by pathogens...</p>
+          </div>
+        </div>
+        
+        <div class="concept-points-section">
+          <h4 class="concept-points-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            3 Key Details from Notes:
+          </h4>
+          <ul class="concept-points-list" id="conceptModalPoints">
+            <!-- 3 bullet points rendered here -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast hidden" id="toast">
+    <span class="toast-icon">✓</span>
+    <span class="toast-msg" id="toastMsg">Action completed successfully</span>
+  </div>
+
+  <!-- Marked.js for fast Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/app.js?v=2.8"></script>
+</body>
+</html>

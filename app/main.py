@@ -1,12 +1,15 @@
-"""FastAPI backend for AI NoteMaker."""
+import os
 import uuid
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from . import config
 from .agents import StudySession
 from .ingest import extract_text
+
+PPT_PATH = r"C:\Users\sanja\Downloads\AI NoteMaker Technical Architecture (1) finale.pdf"
 
 app = FastAPI(title="AI NoteMaker API", version="1.0.0",
               description="AI lecture-notes summarizer and revision assistant")
@@ -69,3 +72,44 @@ def ask(body: AskIn):
     if not body.question.strip():
         raise HTTPException(422, "Question is empty")
     return _get(body.session_id).ask(body.question)
+
+
+class MoreRevisionIn(BaseModel):
+    session_id: str
+    count: int = 5
+    offset: int = 0
+    existing_questions: list[str] = []
+
+
+@app.post("/more-revision")
+def more_revision(body: MoreRevisionIn):
+    session = _get(body.session_id)
+    items = session.revision.run(
+        session.text,
+        n=body.count,
+        offset=body.offset,
+        existing_questions=body.existing_questions
+    )
+    return {"items": items}
+
+
+@app.get("/open-architecture")
+def open_architecture():
+    if os.path.exists(PPT_PATH):
+        try:
+            os.startfile(PPT_PATH)
+            return {"status": "ok", "message": "Opened presentation on your computer."}
+        except Exception as exc:
+            return {"status": "fallback", "message": str(exc)}
+    raise HTTPException(404, "Architecture presentation file not found.")
+
+
+@app.get("/view-architecture")
+def view_architecture():
+    if os.path.exists(PPT_PATH):
+        return FileResponse(
+            PPT_PATH,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "inline; filename=\"AI_NoteMaker_Technical_Architecture.pdf\""}
+        )
+    raise HTTPException(404, "Architecture presentation file not found.")

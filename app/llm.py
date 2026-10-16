@@ -12,7 +12,7 @@ class LLMError(RuntimeError):
     pass
 
 
-def chat(system: str, user: str, temperature: float = 0.2, max_tokens: int = 1200) -> str:
+def chat(system: str, user: str, temperature: float = 0.2, max_tokens: int = 2500) -> str:
     """Call the configured chat-completions endpoint and return the text."""
     if not config.llm_enabled():
         raise LLMError("LLM_API_KEY is not set")
@@ -44,13 +44,17 @@ def chat(system: str, user: str, temperature: float = 0.2, max_tokens: int = 120
 
 
 def chat_json(system: str, user: str, **kw):
-    """Ask for JSON and parse it, tolerating ```json fences."""
+    """Ask for JSON and parse it, tolerating ```json fences and wrapping text."""
+    import re
     raw = chat(system + "\nRespond with valid JSON only.", user, **kw)
     raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.strip("`")
         if raw.lower().startswith("json"):
             raw = raw[4:]
+    m = re.search(r"(\[.*\]|\{.*\})", raw, re.DOTALL)
+    if m:
+        raw = m.group(1).strip()
     try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
